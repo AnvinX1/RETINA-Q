@@ -19,7 +19,7 @@ QUANTUM_INPUT_DIM = NUM_QUBITS
 dev = qml.device("default.qubit", wires=NUM_QUBITS)
 
 
-@qml.qnode(dev, interface="torch", diff_method="parameter-shift")
+@qml.qnode(dev, interface="torch", diff_method="backprop")
 def fundus_quantum_circuit(inputs, weights):
     """
     4-qubit quantum circuit with RY/RZ rotations and CNOT entanglement.
@@ -57,7 +57,7 @@ class FundusQuantumLayer(nn.Module):
         for i in range(batch_size):
             result = fundus_quantum_circuit(x[i], self.weights)
             outputs.append(torch.stack(result))
-        return torch.stack(outputs)
+        return torch.stack(outputs).float()  # Cast to float32 to match classical branch
 
 
 class QuantumFundusClassifier(nn.Module):

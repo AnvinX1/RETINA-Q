@@ -18,7 +18,7 @@ NUM_FEATURES = 64
 dev = qml.device("default.qubit", wires=NUM_QUBITS)
 
 
-@qml.qnode(dev, interface="torch", diff_method="parameter-shift")
+@qml.qnode(dev, interface="torch", diff_method="backprop")
 def quantum_circuit(inputs, weights):
     """
     8-qubit quantum circuit.
@@ -65,7 +65,7 @@ class QuantumLayer(nn.Module):
         for i in range(batch_size):
             result = quantum_circuit(x[i], self.weights)
             outputs.append(torch.stack(result))
-        return torch.stack(outputs)
+        return torch.stack(outputs).float()  # Cast to float32
 
 
 class QuantumOCTClassifier(nn.Module):

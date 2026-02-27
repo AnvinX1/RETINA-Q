@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #111111;
+  --card-foreground: #ffffff;
+  --border: #333333;
+  --muted: #222222;
+  --muted-foreground: #a3a3a3;
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+  --ring: #ffffff;
+  --radius: 0.5rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Minimalist card */
+.glass-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--card-foreground);
+}
+
+/* Stark text (replaced gradients) */
+.gradient-text {
+  color: var(--foreground);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+/* Subdued glows */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+.glow-quantum {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+/* Upload drop zone */
+.drop-zone {
+  border: 1px dashed var(--border);
+  background: var(--background);
+  transition: all 0.2s ease;
+  border-radius: var(--radius);
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--foreground);
+  background: var(--muted);
+}
+
+/* Minimalist Button styles */
+.btn-primary {
+  background: var(--foreground);
+  color: var(--background);
+  font-weight: 500;
+  padding: 0.75rem 2rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--foreground);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.btn-primary:hover {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Confidence bar */
+.confidence-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--foreground);
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse dot */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--foreground);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Image viewer */
+.image-viewer {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.image-viewer img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Tab styles */
+.tab-active {
+  background: var(--foreground);
+  color: var(--background);
+  border-color: var(--foreground);
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--muted);
+  border-top-color: var(--foreground);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
