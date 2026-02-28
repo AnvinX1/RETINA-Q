@@ -34,6 +34,15 @@ export default function DiagnosePage() {
     const [activeTab, setActiveTab] = useState<"classification" | "heatmap" | "segmentation">("classification");
     const fileRef = useRef<HTMLInputElement>(null);
 
+    // ── Async job state ────────────────────────────────────
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [processingStep, setProcessingStep] = useState<string>("");
+
+    // ── Doctor feedback state ──────────────────────────────
+    const [feedbackSent, setFeedbackSent] = useState(false);
+    const [showCorrectionDropdown, setShowCorrectionDropdown] = useState(false);
+    const [feedbackNote, setFeedbackNote] = useState("");
+
     const handleFile = useCallback((file: File) => {
         if (!file.type.startsWith("image/")) {
             setError("Please upload an image file (JPEG or PNG)");
@@ -43,6 +52,9 @@ export default function DiagnosePage() {
         setPreview(URL.createObjectURL(file));
         setResult(null);
         setError(null);
+        setJobId(null);
+        setFeedbackSent(false);
+        setShowCorrectionDropdown(false);
     }, []);
 
     const handleDrop = useCallback(
@@ -55,11 +67,78 @@ export default function DiagnosePage() {
         [handleFile]
     );
 
+    // ── SSE Listener ───────────────────────────────────────
+    const listenForResult = (jid: string) => {
+        setProcessingStep("Connecting to inference worker...");
+        const eventSource = new EventSource(`${API_BASE}/api/jobs/${jid}/stream`);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.status === "pending") {
+                    setProcessingStep("Queued — waiting for GPU worker...");
+                } else if (data.status === "processing") {
+                    const step = data.step || "unknown";
+                    const labels: Record<string, string> = {
+                        loading_image: "Loading image...",
+                        quantum_inference: "Running quantum circuit inference...",
+                        unet_inference: "Running U-Net segmentation...",
+                    };
+                    setProcessingStep(labels[step] || `Processing (${step})...`);
+                } else if (data.status === "complete") {
+                    eventSource.close();
+                    setResult(data.result as PredictionResult);
+                    setActiveTab("classification");
+                    setLoading(false);
+                } else if (data.status === "failed") {
+                    eventSource.close();
+                    setError(data.error || "Inference failed on the worker");
+                    setLoading(false);
+                }
+            } catch {
+                // Ignore malformed events
+            }
+        };
+
+        eventSource.onerror = () => {
+            eventSource.close();
+            // Fallback: poll once
+            setTimeout(() => pollResult(jid), 2000);
+        };
+    };
+
+    // ── Polling fallback ───────────────────────────────────
+    const pollResult = async (jid: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/api/jobs/${jid}`);
+            const data = await res.json();
+
+            if (data.status === "complete") {
+                setResult(data.result as PredictionResult);
+                setActiveTab("classification");
+                setLoading(false);
+            } else if (data.status === "failed") {
+                setError(data.error || "Inference failed");
+                setLoading(false);
+            } else {
+                // Still processing, poll again
+                setTimeout(() => pollResult(jid), 2000);
+            }
+        } catch {
+            setError("Lost connection to backend");
+            setLoading(false);
+        }
+    };
+
+    // ── Submit handler ─────────────────────────────────────
     const handleSubmit = async () => {
         if (!selectedFile) return;
         setLoading(true);
         setError(null);
         setResult(null);
+        setFeedbackSent(false);
+        setShowCorrectionDropdown(false);
 
         try {
             const formData = new FormData();
@@ -67,8 +146,8 @@ export default function DiagnosePage() {
 
             const endpoint =
                 imageType === "oct"
-                    ? `${API_BASE}/api/predict/oct`
-                    : `${API_BASE}/api/predict/fundus`;
+                    ? `${API_BASE}/api/predict/oct?async_mode=true`
+                    : `${API_BASE}/api/predict/fundus?async_mode=true`;
 
             const res = await fetch(endpoint, { method: "POST", body: formData });
 
@@ -77,21 +156,51 @@ export default function DiagnosePage() {
                 throw new Error(err.detail || "Prediction failed");
             }
 
-            const data: PredictionResult = await res.json();
-            setResult(data);
-            setActiveTab("classification");
+            const data = await res.json();
+
+            if (data.job_id) {
+                // Async mode — listen for result via SSE
+                setJobId(data.job_id);
+                listenForResult(data.job_id);
+            } else {
+                // Sync fallback
+                setResult(data as PredictionResult);
+                setActiveTab("classification");
+                setLoading(false);
+            }
         } catch (err: any) {
             setError(err.message || "An unexpected error occurred");
-        } finally {
             setLoading(false);
         }
     };
 
+    // ── Feedback submission ────────────────────────────────
+    const submitFeedback = async (verdict: "accept" | "reject", correction?: string) => {
+        if (!jobId) return;
+
+        try {
+            await fetch(`${API_BASE}/api/feedback`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    job_id: jobId,
+                    doctor_verdict: verdict,
+                    correction: correction || null,
+                    notes: feedbackNote || null,
+                }),
+            });
+            setFeedbackSent(true);
+            setShowCorrectionDropdown(false);
+        } catch {
+            // Silent fail — feedback is non-critical
+        }
+    };
+
+    const correctionOptions =
+        imageType === "oct" ? ["Normal", "CSR"] : ["Healthy", "CSCR"];
+
     const isDisease =
         result?.prediction === "CSR" || result?.prediction === "CSCR";
-    const confidenceColor = isDisease
-        ? "from-red-500 to-orange-500"
-        : "from-emerald-500 to-teal-500";
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-10">
@@ -202,7 +311,7 @@ export default function DiagnosePage() {
                         {loading ? (
                             <>
                                 <div className="spinner !w-5 !h-5 !border-2"></div>
-                                <span>Analyzing with quantum circuit...</span>
+                                <span>{processingStep || "Dispatching to worker..."}</span>
                             </>
                         ) : (
                             <>
@@ -265,6 +374,75 @@ export default function DiagnosePage() {
                                         {result.probability.toFixed(4)}
                                     </span>
                                 </div>
+                            </div>
+
+                            {/* ── Doctor Feedback Panel ──────────────── */}
+                            <div className="glass-card p-6">
+                                <h3 className="font-semibold text-foreground tracking-wide uppercase text-sm mb-4 border-b border-border pb-3">
+                                    Clinical Feedback
+                                </h3>
+
+                                {feedbackSent ? (
+                                    <div className="text-center py-4">
+                                        <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center mx-auto mb-3">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-sm text-foreground font-medium">Feedback Recorded</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Thank you. This will improve future predictions.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <p className="text-xs text-muted-foreground">
+                                            Does this diagnosis align with your clinical assessment?
+                                        </p>
+
+                                        {/* Notes input */}
+                                        <input
+                                            type="text"
+                                            placeholder="Optional clinical notes..."
+                                            value={feedbackNote}
+                                            onChange={(e) => setFeedbackNote(e.target.value)}
+                                            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
+                                        />
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() => submitFeedback("accept")}
+                                                className="flex-1 px-4 py-2.5 border border-foreground text-foreground text-sm font-medium hover:bg-foreground hover:text-background transition-all uppercase tracking-wider"
+                                            >
+                                                ✓ Accept
+                                            </button>
+                                            <button
+                                                onClick={() => setShowCorrectionDropdown(true)}
+                                                className="flex-1 px-4 py-2.5 bg-foreground text-background text-sm font-medium hover:opacity-80 transition-all uppercase tracking-wider"
+                                            >
+                                                ✗ Reject
+                                            </button>
+                                        </div>
+
+                                        {/* Correction Dropdown */}
+                                        {showCorrectionDropdown && (
+                                            <div className="border border-border p-4 bg-background space-y-3 animate-slide-up">
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                                                    Select the correct diagnosis:
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {correctionOptions.map((label) => (
+                                                        <button
+                                                            key={label}
+                                                            onClick={() => submitFeedback("reject", label)}
+                                                            className="px-4 py-2 border border-border text-sm text-foreground hover:bg-foreground hover:text-background transition-all font-mono"
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Tabs */}

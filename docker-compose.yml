@@ -12,16 +12,46 @@ services:
     volumes:
       - ./backend/weights:/app/weights
       - backend-uploads:/app/uploads
+      - backend-feedback:/app/feedback
     environment:
       - DEBUG=false
       - HOST=0.0.0.0
       - PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - MLFLOW_ENABLED=false
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - SHADOW_ENABLED=false
+    depends_on:
+      - redis
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # ── Celery Worker (GPU Inference) ────────────────────────
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: retinaq-celery-worker
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./backend/weights:/app/weights
+      - backend-uploads:/app/uploads
+      - backend-feedback:/app/feedback
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - MLFLOW_ENABLED=false
+      - SHADOW_ENABLED=false
+    depends_on:
+      - redis
+    restart: unless-stopped
 
   # ── Frontend Dashboard ──────────────────────────────────
   frontend:
@@ -51,7 +81,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  # ── Redis Cache ─────────────────────────────────────────
+  # ── Redis (Message Broker + Result Backend) ─────────────
   redis:
     image: redis:7-alpine
     container_name: retinaq-redis
@@ -59,6 +89,19 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
+  # ── MLflow (Model Registry) ─────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.0
+    container_name: retinaq-mlflow
+    ports:
+      - "5000:5000"
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlflow/artifacts
+    volumes:
+      - mlflow-data:/mlflow
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   backend-uploads:
+  backend-feedback:
+  mlflow-data:

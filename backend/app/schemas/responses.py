@@ -48,3 +48,48 @@ class ErrorResponse(BaseModel):
     """Error response."""
     error: str
     detail: str | None = None
+
+
+# ──────────────────────────────────────────────────────────────
+# Async Job Schemas
+# ──────────────────────────────────────────────────────────────
+
+class JobSubmittedResponse(BaseModel):
+    """Returned when an async inference job is dispatched."""
+    job_id: str = Field(..., description="Unique job identifier for polling")
+    status: str = Field(default="processing", description="Initial job status")
+
+
+class JobStatusResponse(BaseModel):
+    """Polling response for an async inference job."""
+    job_id: str
+    status: str = Field(..., description="pending | processing | complete | failed")
+    step: str | None = Field(None, description="Current processing step (if processing)")
+    result: dict | None = Field(None, description="Inference result (if complete)")
+    error: str | None = Field(None, description="Error message (if failed)")
+
+
+# ──────────────────────────────────────────────────────────────
+# Doctor Feedback Schemas
+# ──────────────────────────────────────────────────────────────
+
+class FeedbackRequest(BaseModel):
+    """Doctor feedback submission."""
+    job_id: str = Field(..., description="The job_id of the prediction being reviewed")
+    doctor_verdict: str = Field(
+        ...,
+        description="'accept' or 'reject'",
+        pattern="^(accept|reject)$",
+    )
+    correction: str | None = Field(
+        None,
+        description="Correct diagnosis label if rejecting (e.g. 'Normal', 'CSR', 'CSCR', 'Healthy')",
+    )
+    notes: str | None = Field(None, description="Optional free-text clinical notes")
+
+
+class FeedbackResponse(BaseModel):
+    """Response after recording feedback."""
+    job_id: str
+    status: str = Field(default="recorded")
+    message: str

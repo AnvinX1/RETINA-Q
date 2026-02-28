@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from app.config import settings
-from app.routes import predict, segment
+from app.routes import predict, segment, jobs, feedback
 from app.schemas.responses import HealthResponse
 
 # ──────────────────────────────────────────────────────────────
@@ -30,9 +30,11 @@ app = FastAPI(
     description=(
         "Hybrid Quantum-Classical Multi-Modal Retinal Disease Diagnosis System. "
         "Provides OCT classification, fundus classification, macular segmentation, "
-        "and AI explainability through Grad-CAM and feature importance mapping."
+        "and AI explainability through Grad-CAM and feature importance mapping. "
+        "Supports async processing via Celery workers, doctor feedback loops, "
+        "and shadow model deployment for MLOps."
     ),
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -53,6 +55,8 @@ app.add_middleware(
 # ──────────────────────────────────────────────────────────────
 app.include_router(predict.router)
 app.include_router(segment.router)
+app.include_router(jobs.router)
+app.include_router(feedback.router)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -71,8 +75,11 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     logger.info("=" * 60)
-    logger.info("RETINA-Q API starting up")
+    logger.info("RETINA-Q API v2.0.0 starting up")
     logger.info(f"Debug mode: {settings.debug}")
+    logger.info(f"Celery broker: {settings.celery_broker_url}")
+    logger.info(f"MLflow enabled: {settings.mlflow_enabled}")
+    logger.info(f"Shadow deployment: {settings.shadow_enabled}")
     logger.info(f"Allowed origins: {settings.allowed_origins}")
     logger.info("=" * 60)
 
