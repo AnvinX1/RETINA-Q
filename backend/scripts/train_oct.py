@@ -34,6 +34,8 @@ from loguru import logger
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+from PIL import Image
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score
 
@@ -47,45 +49,58 @@ from app.utils.oct_feature_extractor import extract_features
 
 
 # ──────────────────────────────────────────────────────────────
+# Transforms
+# ──────────────────────────────────────────────────────────────
+train_transform = transforms.Compose([
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomVerticalFlip(),
+    transforms.RandomRotation(15),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2),
+])
+
+
+# ──────────────────────────────────────────────────────────────
 # Dataset
 # ──────────────────────────────────────────────────────────────
 class OCTFeatureDataset(Dataset):
     """
-    Pre-extracts 64 features from OCT images.
-    Caches features in memory for faster training.
+    Reads images from disk, applies stochastic transforms,
+    and extracts 64 statistical features on the fly.
     """
 
-    def __init__(self, image_paths: list, labels: list, target_size=(224, 224)):
-        self.features = []
-        self.labels = []
-
-        logger.info(f"Extracting features from {len(image_paths)} images...")
-        for i, (path, label) in enumerate(zip(image_paths, labels)):
-            try:
-                image = cv2.imread(str(path))
-                if image is None:
-                    continue
-                feat = extract_features(image, target_size=target_size)
-                self.features.append(feat)
-                self.labels.append(label)
-            except Exception as e:
-                logger.warning(f"Skipping {path}: {e}")
-
-            if (i + 1) % 500 == 0:
-                logger.info(f"  Processed {i+1}/{len(image_paths)} images")
-
-        self.features = np.array(self.features, dtype=np.float32)
-        self.labels = np.array(self.labels, dtype=np.float32)
-        logger.info(f"Dataset ready: {len(self.features)} samples, {self.features.shape[1]} features")
+    def __init__(self, image_paths: list, labels: list, target_size=(224, 224), transform=None):
+        self.image_paths = image_paths
+        self.labels = labels
+        self.target_size = target_size
+        self.transform = transform
+        logger.info(f"Initialized dataset with {len(self.image_paths)} samples")
 
     def __len__(self):
-        return len(self.features)
+        return len(self.image_paths)
 
     def __getitem__(self, idx):
+        path = self.image_paths[idx]
+        image = cv2.imread(str(path))
+        
+        # Fallback for corrupted images
+        if image is None:
+            image = np.zeros((*self.target_size, 3), dtype=np.uint8)
+
+        # Apply augmentation
+        if self.transform:
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(image_rgb)
+            pil_img = self.transform(pil_img)
+            image = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
+        # Extract 64 classical features
+        feat = extract_features(image, target_size=self.target_size)
+
         return (
-            torch.tensor(self.features[idx], dtype=torch.float32),
+            torch.tensor(feat, dtype=torch.float32),
             torch.tensor(self.labels[idx], dtype=torch.float32),
         )
+
 
 
 # ──────────────────────────────────────────────────────────────
@@ -193,8 +208,6 @@ def main():
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=5e-4)
-    parser.add_argument("--max-samples", type=int, default=5000,
-                        help="Max samples to use (for faster training with quantum circuits)")
     parser.add_argument("--output", type=str, default="weights/oct_quantum.pth")
     args = parser.parse_args()
 
@@ -213,24 +226,20 @@ def main():
     logger.info(f"Found {len(image_paths)} images")
     logger.info(f"Normal: {labels.count(0)}, Disease: {labels.count(1)}")
 
-    # Subsample if too many (quantum circuits are slow)
-    if len(image_paths) > args.max_samples:
-        logger.info(f"Subsampling to {args.max_samples} images for quantum training speed")
-        indices = np.random.RandomState(42).choice(len(image_paths), args.max_samples, replace=False)
-        image_paths = [image_paths[i] for i in indices]
-        labels = [labels[i] for i in indices]
+    logger.info(f"Found {len(image_paths)} images")
+    logger.info(f"Normal: {labels.count(0)}, Disease: {labels.count(1)}")
 
     # Train/Val split
     train_paths, val_paths, train_labels, val_labels = train_test_split(
         image_paths, labels, test_size=0.2, stratify=labels, random_state=42
     )
 
-    # ── Create datasets (pre-extract features) ────────────
-    train_dataset = OCTFeatureDataset(train_paths, train_labels)
+    # ── Create datasets (on-the-fly extraction) ───────────
+    train_dataset = OCTFeatureDataset(train_paths, train_labels, transform=train_transform)
     val_dataset = OCTFeatureDataset(val_paths, val_labels)
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     # ── Model ─────────────────────────────────────────────
     logger.info("Initializing QuantumOCTClassifier (8-qubit)")

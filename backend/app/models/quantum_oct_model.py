@@ -10,7 +10,7 @@ import numpy as np
 
 
 NUM_QUBITS = 8
-NUM_LAYERS = 4
+NUM_LAYERS = 8   # Doubled from 4 — deeper circuit for better expressivity
 NUM_FEATURES = 64
 
 
@@ -92,9 +92,13 @@ class QuantumOCTClassifier(nn.Module):
         # Quantum layer
         self.quantum = QuantumLayer()
 
-        # Post-quantum: classify from measurements
+        # Post-quantum: classify from measurements (wider head for deeper circuit)
         self.post_net = nn.Sequential(
-            nn.Linear(NUM_QUBITS, 16),
+            nn.Linear(NUM_QUBITS, 32),
+            nn.ReLU(),
+            nn.BatchNorm1d(32),
+            nn.Dropout(0.3),
+            nn.Linear(32, 16),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(16, 1),

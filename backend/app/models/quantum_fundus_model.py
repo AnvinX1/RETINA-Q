@@ -10,7 +10,7 @@ from efficientnet_pytorch import EfficientNet
 
 
 NUM_QUBITS = 4
-NUM_LAYERS = 3
+NUM_LAYERS = 6   # Doubled from 3 — deeper circuit for better feature extraction
 CLASSICAL_FEATURES = 1280  # EfficientNet-B0 output features
 QUANTUM_INPUT_DIM = NUM_QUBITS
 
@@ -96,7 +96,11 @@ class QuantumFundusClassifier(nn.Module):
 
         # Classifier: concatenated classical (4) + quantum (4) = 8
         self.classifier = nn.Sequential(
-            nn.Linear(QUANTUM_INPUT_DIM + NUM_QUBITS, 16),
+            nn.Linear(QUANTUM_INPUT_DIM + NUM_QUBITS, 32),
+            nn.ReLU(),
+            nn.BatchNorm1d(32),
+            nn.Dropout(0.3),
+            nn.Linear(32, 16),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(16, 1),
