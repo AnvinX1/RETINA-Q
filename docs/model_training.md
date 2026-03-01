@@ -24,7 +24,9 @@ The most significant hurdle during training was the `diff_method` utilized by Pe
 
 ### C. OCT Classification (8-Qubit VQC)
 - **Architecture**: An intensive 8-qubit PennyLane circuit assessing 64 classical statistical features fed from OpenCV.
+- **Optimization Strategy**: We pivoted from `default.qubit` (CPU bound) to `lightning.gpu` (cuQuantum backed) and entirely refactored the `forward()` pass to natively broadcast tensor operations instead of sequentially looping over the batch. 
+- **Training Progression**: By utilizing batched GPU parallelization, epoch completion time plummeted from **~100 minutes** down to **~7 minutes**. We allowed the default parameter of **30 epochs** to continue over the full 84k Kermany2018 dataset overnight.
 - **Final Result**:
-  - **Validation AUC**: 0.5340
-  - **Validation Accuracy**: 68.70%
-  - *Note: The OCT model proved the most difficult to stabilize. Moving forward, hyperparameter tuning of the quantum gate rotations and utilizing the full Kermany2018 dataset is required to break the 68% accuracy ceiling.*
+  - **Validation AUC**: 0.8473
+  - **Validation Accuracy**: 79.66%
+  - *Note: Switching the 8-qubit PennyLane simulator to `lightning.gpu` completely unlocked the potential of this network, allowing it to comfortably break past the previous 68% accuracy ceiling in a fraction of the time.*

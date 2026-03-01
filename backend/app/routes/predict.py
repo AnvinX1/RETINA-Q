@@ -64,7 +64,7 @@ async def predict_oct(
             from app.tasks import predict_oct_task
 
             job_id, filepath = _save_upload(image_bytes, file.filename)
-            predict_oct_task.delay(job_id, filepath)
+            predict_oct_task.apply_async(args=[job_id, filepath], task_id=job_id)
             logger.info(f"OCT job dispatched — job_id={job_id}")
             return JobSubmittedResponse(job_id=job_id)
 
@@ -114,7 +114,7 @@ async def predict_fundus(
             from app.tasks import predict_fundus_task
 
             job_id, filepath = _save_upload(image_bytes, file.filename)
-            predict_fundus_task.delay(job_id, filepath)
+            predict_fundus_task.apply_async(args=[job_id, filepath], task_id=job_id)
             logger.info(f"Fundus job dispatched — job_id={job_id}")
             return JobSubmittedResponse(job_id=job_id)
 

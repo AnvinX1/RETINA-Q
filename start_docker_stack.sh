@@ -22,12 +22,12 @@ else
     exit 1
 fi
 
-echo "[INFO] Using compose command: ${COMPOSE_CMD[*]}"
+echo "[INFO] Using compose command: sudo ${COMPOSE_CMD[*]}"
 echo "[INFO] Tearing down any old containers..."
-"${COMPOSE_CMD[@]}" down
+sudo "${COMPOSE_CMD[@]}" down
 
 echo "[INFO] Building and starting Postgres, Redis, Backend (AI Model), and Frontend..."
-"${COMPOSE_CMD[@]}" up --build -d
+sudo "${COMPOSE_CMD[@]}" up --build -d
 
 echo ""
 echo "=========================================="
@@ -36,5 +36,5 @@ echo "    Frontend UI: http://localhost:3000    "
 echo "    Backend API: http://localhost:8000    "
 echo "=========================================="
 echo ""
-echo "To view live logs: ${COMPOSE_CMD[*]} logs -f"
-echo "To shut down the system: ${COMPOSE_CMD[*]} down"
+echo "To view live logs: sudo ${COMPOSE_CMD[*]} logs -f"
+echo "To shut down the system: sudo ${COMPOSE_CMD[*]} down"

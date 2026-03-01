@@ -37,6 +37,16 @@ RETINA-Q is an experimental AI-powered clinical decision support system that int
 
 ---
 
+## 📚 Documentation
+
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Quantum Model Specifications](docs/QUANTUM_MODELS.md)
+- [Innovation & Quantum Advantage](docs/INNOVATION.md)
+- [Project Handoff Guide](docs/HANDOFF.md)
+- [Training Infrastructure](docs/training_infrastructure.md)
+
+---
+
 ## 📂 Folder Structure
 
 ```
@@ -75,6 +85,13 @@ If you do not want to use Docker, use the native launch script. Make sure you ha
 ```bash
 chmod +x start_demo.sh
 ./start_demo.sh
+```
+
+### Option 3: Remote GPU Training Tracker
+If you are running the intensive quantum models on a remote GPU cluster, use the tracking script to monitor the training processes in real-time.
+```bash
+chmod +x track_training.sh
+./track_training.sh
 ```
 
 ---

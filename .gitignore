@@ -31,3 +31,6 @@ backend/logs/
 # Docker
 docker-compose.override.yml
 backend/data/
+test_images/
+inspect_weights.py
+*.txt

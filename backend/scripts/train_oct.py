@@ -111,7 +111,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
     total_loss = 0
     all_preds, all_labels = [], []
 
-    for features, labels in loader:
+    for batch_idx, (features, labels) in enumerate(loader):
         features, labels = features.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -127,6 +127,9 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
         preds = (torch.sigmoid(outputs) >= 0.5).float()
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
+
+        # Log every batch due to high quantum simulation time
+        logger.info(f"  Batch {batch_idx+1}/{len(loader)} — loss: {loss.item():.4f}")
 
     acc = accuracy_score(all_labels, all_preds)
     return total_loss / len(loader), acc

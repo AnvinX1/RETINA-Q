@@ -2,20 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #111111;
-  --card-foreground: #ffffff;
-  --border: #333333;
-  --muted: #222222;
-  --muted-foreground: #a3a3a3;
-  --accent: #ffffff;
-  --accent-foreground: #000000;
-  --ring: #ffffff;
-  --radius: 0.5rem;
+  /* Clean Professional Medical Palette */
+  --background: #f8fafc;
+  /* Slate 50 */
+  --foreground: #0f172a;
+  /* Slate 900 */
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  /* Slate 800 */
+  --border: #e2e8f0;
+  /* Slate 200 */
+  --muted: #f1f5f9;
+  /* Slate 100 */
+  --muted-foreground: #64748b;
+  /* Slate 500 */
+
+  --primary: #0ea5e9;
+  /* Sky 500 */
+  --primary-foreground: #ffffff;
+
+  --accent: #14b8a6;
+  /* Teal 500 */
+  --accent-foreground: #ffffff;
+
+  --ring: #bae6fd;
+  /* Sky 200 */
+
+  --success: #10b981;
+  /* Emerald 500 */
+  --warning: #f59e0b;
+  /* Amber 500 */
+  --danger: #ef4444;
+  /* Red 500 */
+
+  --radius: 0.75rem;
+  /* Clean, moderate rounding */
 }
 
 * {
@@ -38,103 +62,123 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Minimalist card */
-.glass-card {
+/* Clinical Container Card */
+.med-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--card-foreground);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease-in-out;
 }
 
-/* Stark text (replaced gradients) */
+/* Subtle highlights */
 .gradient-text {
-  color: var(--foreground);
-  font-weight: 800;
-  letter-spacing: -0.025em;
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-/* Subdued glows */
 .glow-primary {
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
 .glow-quantum {
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
 }
 
-/* Upload drop zone */
+/* Upload drop zone - Clinical */
 .drop-zone {
-  border: 1px dashed var(--border);
-  background: var(--background);
+  border: 2px dashed #cbd5e1;
+  /* Slate 300 */
+  background: var(--card);
   transition: all 0.2s ease;
   border-radius: var(--radius);
 }
 
 .drop-zone:hover,
 .drop-zone.drag-over {
-  border-color: var(--foreground);
-  background: var(--muted);
+  border-color: var(--primary);
+  background: #f0f9ff;
+  /* Sky 50 */
 }
 
-/* Minimalist Button styles */
+/* Clinical Button styles */
 .btn-primary {
-  background: var(--foreground);
-  color: var(--background);
-  font-weight: 500;
-  padding: 0.75rem 2rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--foreground);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:hover {
-  background: var(--background);
-  color: var(--foreground);
+  background: #0284c7;
+  /* Sky 600 */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  background: #0369a1;
+  /* Sky 700 */
+  transform: translateY(0);
 }
 
 .btn-primary:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+  background: var(--muted-foreground);
 }
 
 /* Confidence bar */
 .confidence-bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--muted);
+  height: 12px;
+  border-radius: 6px;
+  background: var(--card);
+  border: 2px solid var(--border);
   overflow: hidden;
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .confidence-fill {
   height: 100%;
-  border-radius: 3px;
+  border-right: 2px solid var(--border);
   background: var(--foreground);
   transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Pulse dot */
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--foreground);
+  background: var(--accent);
+  border: 2px solid var(--border);
   animation: pulse 2s ease-in-out infinite;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--background);
+  border-left: 2px solid var(--border);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
+  background: var(--foreground);
+  border: 2px solid var(--border);
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -144,9 +188,10 @@ body {
 /* Image viewer */
 .image-viewer {
   position: relative;
-  border-radius: var(--radius);
+  border-radius: 1rem;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 3px solid var(--border);
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
 }
 
 .image-viewer img {
@@ -159,7 +204,8 @@ body {
 .tab-active {
   background: var(--foreground);
   color: var(--background);
-  border-color: var(--foreground);
+  border-bottom: 3px solid var(--foreground) !important;
+  font-weight: 800;
 }
 
 /* Animations */
@@ -183,8 +229,8 @@ body {
 .spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid var(--muted);
-  border-top-color: var(--foreground);
+  border: 3px solid var(--card);
+  border-top-color: var(--background);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
