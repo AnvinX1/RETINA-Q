@@ -63,6 +63,15 @@ If you perform a new training run on the remote GPU, follow these steps to deplo
 - `train_fundus.py`: Full training loop for the hybrid Fundus model.
 - `train_oct.py`: Training loop for the OCT feature classifier.
 
+### Explainability Documentation (`docs/explainability/`)
+- 12-part markdown series covering the full pipeline from data acquisition through deployment.
+- Rendered in-app at `/docs` with LaTeX, table, and syntax highlighting support.
+- Content managed via `frontend/lib/docs-content.ts`.
+
+### Desktop Shell (`electron/`)
+- `main.js`: Electron wrapper with Navigate menu (Diagnose `Ctrl+1`, System `Ctrl+2`, Docs `Ctrl+3`).
+- `preload.js`: Context bridge exposing `electronAPI` to renderer.
+
 ---
 
 ## 5. Continuity Checklist (Future Work)

@@ -137,10 +137,13 @@ def run_fundus_inference(image_bytes: bytes, run_segmentation: bool = True) -> d
         "segmentation": None,
     }
 
-    # Conditional segmentation — only if disease detected and requested
-    if run_segmentation and result["prediction"] == "CSCR":
-        seg_result = run_segmentation_inference(image)
-        response["segmentation"] = seg_result
+    # Conditional segmentation — run when requested
+    if run_segmentation:
+        try:
+            seg_result = run_segmentation_inference(image)
+            response["segmentation"] = seg_result
+        except Exception as e:
+            logger.warning(f"Segmentation failed: {e}")
 
     return response
 

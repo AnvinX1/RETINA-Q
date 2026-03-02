@@ -1,6 +1,7 @@
 """
 Pydantic Schemas — Request and Response models for the RETINA-Q API.
 """
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -41,7 +42,7 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "ok"
     service: str = "RETINA-Q"
-    version: str = "1.0.0"
+    version: str = "2.0.0"
 
 
 class ErrorResponse(BaseModel):
@@ -93,3 +94,80 @@ class FeedbackResponse(BaseModel):
     job_id: str
     status: str = Field(default="recorded")
     message: str
+
+
+# ──────────────────────────────────────────────────────────────
+# Patient Schemas
+# ──────────────────────────────────────────────────────────────
+
+class PatientCreate(BaseModel):
+    """Create a new patient."""
+    patient_id: str = Field(..., min_length=1, max_length=64, description="Clinic-assigned patient ID")
+    name: str = Field(..., min_length=1, max_length=255, description="Patient full name")
+    age: int | None = Field(None, ge=0, le=150, description="Patient age")
+    gender: str | None = Field(None, max_length=16, description="Patient gender")
+    medical_history: str | None = Field(None, description="Relevant medical history")
+    notes: str | None = Field(None, description="Additional clinical notes")
+
+
+class PatientUpdate(BaseModel):
+    """Update patient fields (all optional)."""
+    name: str | None = Field(None, min_length=1, max_length=255)
+    age: int | None = Field(None, ge=0, le=150)
+    gender: str | None = Field(None, max_length=16)
+    medical_history: str | None = None
+    notes: str | None = None
+
+
+class ScanResponse(BaseModel):
+    """A single scan record."""
+    id: int
+    job_id: str
+    patient_id: int | None = None
+    image_type: str
+    prediction: str
+    confidence: float
+    probability: float
+    feedback_status: str = "pending"
+    doctor_notes: str | None = None
+    mask_area_ratio: float | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PatientResponse(BaseModel):
+    """Patient detail with scan history."""
+    id: int
+    patient_id: str
+    name: str
+    age: int | None = None
+    gender: str | None = None
+    medical_history: str | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    scans: list[ScanResponse] = []
+
+    model_config = {"from_attributes": True}
+
+
+class PatientListItem(BaseModel):
+    """Patient summary for list views (no scans)."""
+    id: int
+    patient_id: str
+    name: str
+    age: int | None = None
+    gender: str | None = None
+    scan_count: int = 0
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PaginatedResponse(BaseModel):
+    """Generic paginated wrapper."""
+    items: list = []
+    total: int = 0
+    page: int = 1
+    per_page: int = 20

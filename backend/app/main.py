@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from app.config import settings
-from app.routes import predict, segment, jobs, feedback
+from app.database import init_db
+from app.routes import predict, segment, jobs, feedback, patients, history
 from app.schemas.responses import HealthResponse
 
 # ──────────────────────────────────────────────────────────────
@@ -57,6 +58,8 @@ app.include_router(predict.router)
 app.include_router(segment.router)
 app.include_router(jobs.router)
 app.include_router(feedback.router)
+app.include_router(patients.router)
+app.include_router(history.router)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -76,6 +79,11 @@ async def health_check():
 async def startup_event():
     logger.info("=" * 60)
     logger.info("RETINA-Q API v2.0.0 starting up")
+    try:
+        init_db()
+        logger.info("Database tables initialized")
+    except Exception as e:
+        logger.warning(f"Database initialization skipped: {e}")
     logger.info(f"Debug mode: {settings.debug}")
     logger.info(f"Celery broker: {settings.celery_broker_url}")
     logger.info(f"MLflow enabled: {settings.mlflow_enabled}")

@@ -13,11 +13,13 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 MODEL_DIR = BASE_DIR / "weights"
 FEEDBACK_DIR = BASE_DIR / "feedback"
 QUARANTINE_DIR = FEEDBACK_DIR / "quarantine"
+SCAN_IMAGES_DIR = UPLOAD_DIR / "scans"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
 QUARANTINE_DIR.mkdir(parents=True, exist_ok=True)
+SCAN_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class Settings(BaseModel):
@@ -71,6 +73,13 @@ class Settings(BaseModel):
 
     # ── Shadow Deployment ───────────────────────────────────
     shadow_enabled: bool = os.getenv("SHADOW_ENABLED", "false").lower() == "true"
+
+    # ── Database ────────────────────────────────────────────
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql://retinaq:retinaq_secret@localhost:5432/retinaq",
+    )
+    scan_images_dir: str = str(SCAN_IMAGES_DIR)
 
 
 settings = Settings()

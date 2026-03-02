@@ -1,0 +1,40 @@
+{
+    "name": "retina-q-desktop",
+    "version": "2.0.0",
+    "description": "RETINA-Q — Hybrid Quantum-Classical Retinal Diagnostic System (Desktop)",
+    "main": "main.js",
+    "author": "RETINA-Q",
+    "license": "MIT",
+    "scripts": {
+        "start": "electron .",
+        "dev": "electron . --dev",
+        "build:linux": "electron-builder --linux",
+        "build:win": "electron-builder --win",
+        "build:mac": "electron-builder --mac"
+    },
+    "devDependencies": {
+        "electron": "^33.0.0",
+        "electron-builder": "^25.0.0"
+    },
+    "build": {
+        "appId": "com.retinaq.desktop",
+        "productName": "RETINA-Q",
+        "directories": {
+            "output": "dist"
+        },
+        "linux": {
+            "target": ["AppImage", "deb"],
+            "category": "Science;MedicalSoftware",
+            "icon": "icon.png"
+        },
+        "win": {
+            "target": "nsis",
+            "icon": "icon.png"
+        },
+        "mac": {
+            "target": "dmg",
+            "icon": "icon.png",
+            "category": "public.app-category.medical"
+        }
+    }
+}

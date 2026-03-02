@@ -4,9 +4,11 @@ Prediction Routes — OCT and Fundus classification endpoints.
 Now supports both synchronous (direct) and asynchronous (Celery) modes.
 When Celery is available, endpoints return 202 Accepted with a job_id.
 """
+import json
 import uuid
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
+from sqlalchemy.orm import Session
 from loguru import logger
 
 from app.schemas.responses import (
@@ -16,7 +18,9 @@ from app.schemas.responses import (
     ErrorResponse,
 )
 from app.services.inference import run_oct_inference, run_fundus_inference
-from app.config import settings, UPLOAD_DIR
+from app.config import settings, UPLOAD_DIR, SCAN_IMAGES_DIR
+from app.database import get_db
+from app.db_models.scan import Scan
 
 
 router = APIRouter(prefix="/api/predict", tags=["Prediction"])
@@ -29,6 +33,29 @@ def _save_upload(image_bytes: bytes, filename: str) -> tuple[str, str]:
     filepath = UPLOAD_DIR / f"{job_id}{ext}"
     filepath.write_bytes(image_bytes)
     return job_id, str(filepath)
+
+
+def _save_scan_to_db(
+    db: Session, job_id: str, image_type: str, result: dict, patient_id: int | None = None
+):
+    """Persist a scan result to the database."""
+    try:
+        scan = Scan(
+            job_id=job_id,
+            patient_id=patient_id,
+            image_type=image_type,
+            prediction=result["prediction"],
+            confidence=result["confidence"],
+            probability=result["probability"],
+            feature_importance_json=json.dumps(result.get("feature_importance")) if result.get("feature_importance") else None,
+            mask_area_ratio=result.get("segmentation", {}).get("mask_area_ratio") if result.get("segmentation") else None,
+        )
+        db.add(scan)
+        db.commit()
+        logger.info(f"Scan saved to DB — job_id={job_id}, patient_id={patient_id}")
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Failed to save scan to DB: {e}")
 
 
 @router.post(
@@ -45,6 +72,8 @@ def _save_upload(image_bytes: bytes, filename: str) -> tuple[str, str]:
 async def predict_oct(
     file: UploadFile = File(..., description="OCT image file (JPEG/PNG)"),
     async_mode: bool = Query(True, description="If true, offload to Celery worker and return job_id"),
+    patient_id: int | None = Query(None, description="Link scan to a patient (DB id)"),
+    db: Session = Depends(get_db),
 ):
     """OCT classification endpoint using the 8-qubit quantum circuit."""
     if not file.content_type or not file.content_type.startswith("image/"):
@@ -72,6 +101,7 @@ async def predict_oct(
         logger.info(f"OCT prediction request — file: {file.filename}, size: {len(image_bytes)} bytes")
         result = run_oct_inference(image_bytes)
         logger.info(f"OCT prediction: {result['prediction']} (confidence: {result['confidence']:.3f})")
+        _save_scan_to_db(db, str(uuid.uuid4()), "oct", result, patient_id)
         return OCTPredictionResponse(**result)
 
     except HTTPException:
@@ -95,6 +125,8 @@ async def predict_oct(
 async def predict_fundus(
     file: UploadFile = File(..., description="Fundus image file (JPEG/PNG)"),
     async_mode: bool = Query(True, description="If true, offload to Celery worker and return job_id"),
+    patient_id: int | None = Query(None, description="Link scan to a patient (DB id)"),
+    db: Session = Depends(get_db),
 ):
     """Fundus classification endpoint with conditional macular segmentation."""
     if not file.content_type or not file.content_type.startswith("image/"):
@@ -122,6 +154,7 @@ async def predict_fundus(
         logger.info(f"Fundus prediction request — file: {file.filename}, size: {len(image_bytes)} bytes")
         result = run_fundus_inference(image_bytes, run_segmentation=True)
         logger.info(f"Fundus prediction: {result['prediction']} (confidence: {result['confidence']:.3f})")
+        _save_scan_to_db(db, str(uuid.uuid4()), "fundus", result, patient_id)
         return FundusPredictionResponse(**result)
 
     except HTTPException:
