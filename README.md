@@ -357,6 +357,7 @@ sudo docker compose up --build -d backend celery-worker
 
 ## Documentation
 
+- [Algorithm Workflow Diagram](docs/WORKFLOW_DIAGRAM.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [Quantum Model Specifications](docs/QUANTUM_MODELS.md)
 - [Innovation & Quantum Advantage](docs/INNOVATION.md)
