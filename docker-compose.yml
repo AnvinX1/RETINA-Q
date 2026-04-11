@@ -22,7 +22,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - MLFLOW_ENABLED=false
+      - MLFLOW_ENABLED=true
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - SHADOW_ENABLED=false
     depends_on:
@@ -53,7 +53,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - MLFLOW_ENABLED=false
+      - MLFLOW_ENABLED=true
       - SHADOW_ENABLED=false
     depends_on:
       - redis
@@ -101,7 +101,7 @@ services:
     image: ghcr.io/mlflow/mlflow:v2.10.0
     container_name: retinaq-mlflow
     ports:
-      - "5000:5000"
+      - "5001:5000"
     command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlflow/artifacts
     volumes:
       - mlflow-data:/mlflow

@@ -4,6 +4,9 @@ RETINA-Q Configuration
 import os
 from pathlib import Path
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,6 +83,9 @@ class Settings(BaseModel):
         "postgresql://retinaq:retinaq_secret@localhost:5432/retinaq",
     )
     scan_images_dir: str = str(SCAN_IMAGES_DIR)
+
+    # ── LLM (OpenRouter) ────────────────────────────────────
+    openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
 
 
 settings = Settings()

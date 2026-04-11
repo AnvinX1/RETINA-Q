@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Pydantic Schemas — Request and Response models for the RETINA-Q API.
 """
@@ -33,7 +34,7 @@ class FundusPredictionResponse(BaseModel):
     confidence: float = Field(..., ge=0, le=1, description="Prediction confidence")
     probability: float = Field(..., ge=0, le=1, description="Raw sigmoid probability")
     gradcam_base64: str = Field(..., description="Base64-encoded Grad-CAM heatmap overlay")
-    segmentation: SegmentationResult | None = Field(
+    segmentation: Optional[SegmentationResult] = Field(
         None, description="Segmentation result (only when CSCR detected)"
     )
 
@@ -48,7 +49,7 @@ class HealthResponse(BaseModel):
 class ErrorResponse(BaseModel):
     """Error response."""
     error: str
-    detail: str | None = None
+    detail: Optional[str] = None
 
 
 # ──────────────────────────────────────────────────────────────
@@ -65,9 +66,9 @@ class JobStatusResponse(BaseModel):
     """Polling response for an async inference job."""
     job_id: str
     status: str = Field(..., description="pending | processing | complete | failed")
-    step: str | None = Field(None, description="Current processing step (if processing)")
-    result: dict | None = Field(None, description="Inference result (if complete)")
-    error: str | None = Field(None, description="Error message (if failed)")
+    step: Optional[str] = Field(None, description="Current processing step (if processing)")
+    result: Optional[dict] = Field(None, description="Inference result (if complete)")
+    error: Optional[str] = Field(None, description="Error message (if failed)")
 
 
 # ──────────────────────────────────────────────────────────────
@@ -82,11 +83,11 @@ class FeedbackRequest(BaseModel):
         description="'accept' or 'reject'",
         pattern="^(accept|reject)$",
     )
-    correction: str | None = Field(
+    correction: Optional[str] = Field(
         None,
         description="Correct diagnosis label if rejecting (e.g. 'Normal', 'CSR', 'CSCR', 'Healthy')",
     )
-    notes: str | None = Field(None, description="Optional free-text clinical notes")
+    notes: Optional[str] = Field(None, description="Optional free-text clinical notes")
 
 
 class FeedbackResponse(BaseModel):
@@ -104,33 +105,33 @@ class PatientCreate(BaseModel):
     """Create a new patient."""
     patient_id: str = Field(..., min_length=1, max_length=64, description="Clinic-assigned patient ID")
     name: str = Field(..., min_length=1, max_length=255, description="Patient full name")
-    age: int | None = Field(None, ge=0, le=150, description="Patient age")
-    gender: str | None = Field(None, max_length=16, description="Patient gender")
-    medical_history: str | None = Field(None, description="Relevant medical history")
-    notes: str | None = Field(None, description="Additional clinical notes")
+    age: Optional[int] = Field(None, ge=0, le=150, description="Patient age")
+    gender: Optional[str] = Field(None, max_length=16, description="Patient gender")
+    medical_history: Optional[str] = Field(None, description="Relevant medical history")
+    notes: Optional[str] = Field(None, description="Additional clinical notes")
 
 
 class PatientUpdate(BaseModel):
     """Update patient fields (all optional)."""
-    name: str | None = Field(None, min_length=1, max_length=255)
-    age: int | None = Field(None, ge=0, le=150)
-    gender: str | None = Field(None, max_length=16)
-    medical_history: str | None = None
-    notes: str | None = None
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    age: Optional[int] = Field(None, ge=0, le=150)
+    gender: Optional[str] = Field(None, max_length=16)
+    medical_history: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class ScanResponse(BaseModel):
     """A single scan record."""
     id: int
     job_id: str
-    patient_id: int | None = None
+    patient_id: Optional[int] = None
     image_type: str
     prediction: str
     confidence: float
     probability: float
     feedback_status: str = "pending"
-    doctor_notes: str | None = None
-    mask_area_ratio: float | None = None
+    doctor_notes: Optional[str] = None
+    mask_area_ratio: Optional[float] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -141,10 +142,10 @@ class PatientResponse(BaseModel):
     id: int
     patient_id: str
     name: str
-    age: int | None = None
-    gender: str | None = None
-    medical_history: str | None = None
-    notes: str | None = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    medical_history: Optional[str] = None
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     scans: list[ScanResponse] = []
@@ -157,8 +158,8 @@ class PatientListItem(BaseModel):
     id: int
     patient_id: str
     name: str
-    age: int | None = None
-    gender: str | None = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
     scan_count: int = 0
     created_at: datetime
 

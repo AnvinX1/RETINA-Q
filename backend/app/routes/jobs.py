@@ -1,5 +1,7 @@
 """
 Job Status Routes — Polling and SSE endpoints for async inference results.
+
+Gracefully handles cases where Celery/Redis is not available.
 """
 import asyncio
 import json
@@ -22,6 +24,12 @@ router = APIRouter(prefix="/api/jobs", tags=["Jobs"])
 )
 async def get_job_status(job_id: str):
     """Check the status of a Celery task by job_id."""
+    if celery_app is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Async job tracking unavailable — Celery/Redis not connected",
+        )
+
     result = celery_app.AsyncResult(job_id)
 
     if result.state == "PENDING":
@@ -56,6 +64,11 @@ async def get_job_status(job_id: str):
 )
 async def stream_job_status(job_id: str):
     """SSE endpoint — pushes status updates until the job completes or fails."""
+    if celery_app is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Async job tracking unavailable — Celery/Redis not connected",
+        )
 
     async def event_generator():
         while True:

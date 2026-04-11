@@ -41,12 +41,6 @@ export default function RootLayout({
                                     diagnose
                                 </a>
                                 <a
-                                    href="/dashboard"
-                                    className="px-3 py-1.5 text-xs font-medium font-mono text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
-                                >
-                                    system
-                                </a>
-                                <a
                                     href="/docs"
                                     className="px-3 py-1.5 text-xs font-medium font-mono text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
                                 >

@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Scan History Routes — browse and manage diagnostic scan records.
 """
@@ -15,14 +16,16 @@ router = APIRouter(prefix="/api/scans", tags=["Scan History"])
 
 @router.get("", response_model=PaginatedResponse)
 def list_scans(
-    patient_id: int | None = Query(None, description="Filter by patient DB id"),
-    image_type: str | None = Query(None, description="Filter by image type: oct or fundus"),
-    prediction: str | None = Query(None, description="Filter by prediction label"),
+    patient_id: Optional[int] = Query(None, description="Filter by patient DB id"),
+    image_type: Optional[str] = Query(None, description="Filter by image type: oct or fundus"),
+    prediction: Optional[str] = Query(None, description="Filter by prediction label"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     """List scans with optional filters and pagination."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available")
     query = db.query(Scan)
 
     if patient_id is not None:

@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Scan ORM Model — stores each diagnostic scan result linked to a patient.
 """
@@ -13,7 +14,7 @@ class Scan(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     job_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
-    patient_id: Mapped[int | None] = mapped_column(
+    patient_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("patients.id", ondelete="SET NULL"), nullable=True
     )
     image_type: Mapped[str] = mapped_column(String(16), nullable=False)  # "oct" or "fundus"
@@ -22,19 +23,19 @@ class Scan(Base):
     probability: Mapped[float] = mapped_column(Float, nullable=False)
 
     # Stored image paths (relative to uploads/scans/)
-    original_image_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    heatmap_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    gradcam_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    segmentation_mask_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    segmentation_overlay_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    mask_area_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    original_image_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    heatmap_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    gradcam_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    segmentation_mask_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    segmentation_overlay_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    mask_area_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     # Feature importance stored as JSON text
-    feature_importance_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feature_importance_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Doctor feedback
     feedback_status: Mapped[str] = mapped_column(String(16), default="pending")  # pending/accepted/rejected
-    doctor_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    doctor_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

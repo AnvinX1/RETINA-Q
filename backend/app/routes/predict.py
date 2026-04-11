@@ -1,8 +1,10 @@
+from typing import Optional
 """
 Prediction Routes — OCT and Fundus classification endpoints.
 
-Now supports both synchronous (direct) and asynchronous (Celery) modes.
-When Celery is available, endpoints return 202 Accepted with a job_id.
+Supports both synchronous (direct) and asynchronous (Celery) modes.
+When Celery is available and async_mode is requested, returns 202 Accepted with a job_id.
+When Celery is unavailable, automatically falls back to synchronous inference.
 """
 import json
 import uuid
@@ -20,10 +22,15 @@ from app.schemas.responses import (
 from app.services.inference import run_oct_inference, run_fundus_inference
 from app.config import settings, UPLOAD_DIR, SCAN_IMAGES_DIR
 from app.database import get_db
-from app.db_models.scan import Scan
 
 
 router = APIRouter(prefix="/api/predict", tags=["Prediction"])
+
+
+def _celery_available() -> bool:
+    """Check if Celery/Redis is available for async dispatch."""
+    from app.celery_app import celery_app
+    return celery_app is not None
 
 
 def _save_upload(image_bytes: bytes, filename: str) -> tuple[str, str]:
@@ -36,10 +43,14 @@ def _save_upload(image_bytes: bytes, filename: str) -> tuple[str, str]:
 
 
 def _save_scan_to_db(
-    db: Session, job_id: str, image_type: str, result: dict, patient_id: int | None = None
+    db, job_id: str, image_type: str, result: dict, patient_id: Optional[int] = None
 ):
-    """Persist a scan result to the database."""
+    """Persist a scan result to the database (no-op if db is None)."""
+    if db is None:
+        logger.debug("Database not available — skipping scan persistence")
+        return
     try:
+        from app.db_models.scan import Scan
         scan = Scan(
             job_id=job_id,
             patient_id=patient_id,
@@ -72,7 +83,7 @@ def _save_scan_to_db(
 async def predict_oct(
     file: UploadFile = File(..., description="OCT image file (JPEG/PNG)"),
     async_mode: bool = Query(True, description="If true, offload to Celery worker and return job_id"),
-    patient_id: int | None = Query(None, description="Link scan to a patient (DB id)"),
+    patient_id: Optional[int] = Query(None, description="Link scan to a patient (DB id)"),
     db: Session = Depends(get_db),
 ):
     """OCT classification endpoint using the 8-qubit quantum circuit."""
@@ -88,8 +99,8 @@ async def predict_oct(
                 detail=f"File size exceeds {settings.max_upload_size_mb}MB limit",
             )
 
-        # ── Async mode: dispatch to Celery ──────────────────
-        if async_mode:
+        # ── Async mode: dispatch to Celery (only if available) ──
+        if async_mode and _celery_available():
             from app.tasks import predict_oct_task
 
             job_id, filepath = _save_upload(image_bytes, file.filename)
@@ -97,7 +108,10 @@ async def predict_oct(
             logger.info(f"OCT job dispatched — job_id={job_id}")
             return JobSubmittedResponse(job_id=job_id)
 
-        # ── Sync mode: run inline (legacy/testing) ──────────
+        # ── Sync mode (or Celery unavailable — auto fallback) ───
+        if async_mode and not _celery_available():
+            logger.info("Celery unavailable — falling back to synchronous OCT inference")
+
         logger.info(f"OCT prediction request — file: {file.filename}, size: {len(image_bytes)} bytes")
         result = run_oct_inference(image_bytes)
         logger.info(f"OCT prediction: {result['prediction']} (confidence: {result['confidence']:.3f})")
@@ -125,7 +139,7 @@ async def predict_oct(
 async def predict_fundus(
     file: UploadFile = File(..., description="Fundus image file (JPEG/PNG)"),
     async_mode: bool = Query(True, description="If true, offload to Celery worker and return job_id"),
-    patient_id: int | None = Query(None, description="Link scan to a patient (DB id)"),
+    patient_id: Optional[int] = Query(None, description="Link scan to a patient (DB id)"),
     db: Session = Depends(get_db),
 ):
     """Fundus classification endpoint with conditional macular segmentation."""
@@ -141,8 +155,8 @@ async def predict_fundus(
                 detail=f"File size exceeds {settings.max_upload_size_mb}MB limit",
             )
 
-        # ── Async mode: dispatch to Celery ──────────────────
-        if async_mode:
+        # ── Async mode: dispatch to Celery (only if available) ──
+        if async_mode and _celery_available():
             from app.tasks import predict_fundus_task
 
             job_id, filepath = _save_upload(image_bytes, file.filename)
@@ -150,7 +164,10 @@ async def predict_fundus(
             logger.info(f"Fundus job dispatched — job_id={job_id}")
             return JobSubmittedResponse(job_id=job_id)
 
-        # ── Sync mode: run inline (legacy/testing) ──────────
+        # ── Sync mode (or Celery unavailable — auto fallback) ───
+        if async_mode and not _celery_available():
+            logger.info("Celery unavailable — falling back to synchronous Fundus inference")
+
         logger.info(f"Fundus prediction request — file: {file.filename}, size: {len(image_bytes)} bytes")
         result = run_fundus_inference(image_bytes, run_segmentation=True)
         logger.info(f"Fundus prediction: {result['prediction']} (confidence: {result['confidence']:.3f})")
