@@ -9,7 +9,7 @@ from loguru import logger
 
 from app.config import settings
 from app.database import init_db
-from app.routes import predict, segment, jobs, feedback, patients, history
+from app.routes import predict, segment, jobs, feedback, patients, history, chat
 from app.schemas.responses import HealthResponse
 
 # ──────────────────────────────────────────────────────────────
@@ -60,6 +60,7 @@ app.include_router(jobs.router)
 app.include_router(feedback.router)
 app.include_router(patients.router)
 app.include_router(history.router)
+app.include_router(chat.router, prefix="/api/chat", tags=["ChatAssistant"])
 
 
 # ──────────────────────────────────────────────────────────────

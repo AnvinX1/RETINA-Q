@@ -40,7 +40,7 @@ echo "[INFO] Building frontend if necessary..."
 if [ ! -d ".next" ]; then
     npm run build
 fi
-npm run start -p 3000 > /tmp/retina_frontend_demo.log 2>&1 &
+npm run start -- -p 3000 > /tmp/retina_frontend_demo.log 2>&1 &
 FRONTEND_PID=$!
 echo "[INFO] Frontend running on http://127.0.0.1:3000 (PID: $FRONTEND_PID)"
 

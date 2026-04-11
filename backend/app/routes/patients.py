@@ -1,3 +1,4 @@
+from typing import Optional
 """
 Patient Routes — CRUD endpoints for patient management.
 """
@@ -24,6 +25,8 @@ router = APIRouter(prefix="/api/patients", tags=["Patients"])
 @router.post("", response_model=PatientResponse, status_code=201)
 def create_patient(payload: PatientCreate, db: Session = Depends(get_db)):
     """Create a new patient record."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available")
     existing = db.query(Patient).filter(Patient.patient_id == payload.patient_id).first()
     if existing:
         raise HTTPException(status_code=409, detail=f"Patient ID '{payload.patient_id}' already exists")
@@ -38,12 +41,14 @@ def create_patient(payload: PatientCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model=PaginatedResponse)
 def list_patients(
-    search: str | None = Query(None, description="Search by name or patient_id"),
+    search: Optional[str] = Query(None, description="Search by name or patient_id"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     """List patients with optional search and pagination."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available")
     query = db.query(Patient)
 
     if search:
@@ -86,6 +91,8 @@ def list_patients(
 @router.get("/{patient_db_id}", response_model=PatientResponse)
 def get_patient(patient_db_id: int, db: Session = Depends(get_db)):
     """Get patient detail with full scan history."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available")
     patient = db.query(Patient).filter(Patient.id == patient_db_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -95,6 +102,8 @@ def get_patient(patient_db_id: int, db: Session = Depends(get_db)):
 @router.put("/{patient_db_id}", response_model=PatientResponse)
 def update_patient(patient_db_id: int, payload: PatientUpdate, db: Session = Depends(get_db)):
     """Update patient fields."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available")
     patient = db.query(Patient).filter(Patient.id == patient_db_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -112,6 +121,8 @@ def update_patient(patient_db_id: int, payload: PatientUpdate, db: Session = Dep
 @router.delete("/{patient_db_id}", status_code=204)
 def delete_patient(patient_db_id: int, db: Session = Depends(get_db)):
     """Delete a patient and all associated scans."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available")
     patient = db.query(Patient).filter(Patient.id == patient_db_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")

@@ -121,6 +121,14 @@ def compute_oct_feature_importance(
     # Normalize
     if importance.max() > 0:
         importance = importance / importance.max()
+    else:
+        # Fallback for demo mode (untrained models frequently yield 0 gradients)
+        # We proxy 'importance' using the extracted absolute physical features
+        raw_mag = np.abs(features)
+        if raw_mag.max() > 0:
+            importance = raw_mag / raw_mag.max()
+        else:
+            importance = np.ones_like(features) / len(features)
 
     return importance
 

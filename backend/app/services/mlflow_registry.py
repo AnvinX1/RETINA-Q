@@ -1,3 +1,4 @@
+from typing import Optional
 """
 MLflow Model Registry Service
 
@@ -27,10 +28,10 @@ def _get_client():
 def register_model(
     model_name: str,
     weights_path: str,
-    metrics: dict | None = None,
-    params: dict | None = None,
-    tags: dict | None = None,
-) -> str | None:
+    metrics: Optional[dict] = None,
+    params: Optional[dict] = None,
+    tags: Optional[dict] = None,
+) -> Optional[str]:
     """
     Log a trained model to MLflow with metrics and params.
     Returns the run_id or None if MLflow is disabled.
@@ -60,7 +61,7 @@ def register_model(
         return run.info.run_id
 
 
-def load_production_weights(model_name: str) -> str | None:
+def load_production_weights(model_name: str) -> Optional[str]:
     """
     Fetch the latest 'Production' model weights path from MLflow.
     Returns the local path to the downloaded artifact, or None.
@@ -90,7 +91,7 @@ def load_production_weights(model_name: str) -> str | None:
         return None
 
 
-def load_shadow_weights(model_name: str) -> str | None:
+def load_shadow_weights(model_name: str) -> Optional[str]:
     """
     Fetch the latest 'Staging' model weights path from MLflow.
     Used for shadow deployment comparisons.
